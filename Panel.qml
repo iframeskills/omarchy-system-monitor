@@ -228,7 +228,7 @@ Panel {
   readonly property bool hasGpuTemperature: metrics.gpuTemperature >= 0
   readonly property bool hasGpuVram: metrics.gpuVramTotal > 0 && metrics.gpuVramUsed >= 0
   readonly property bool hasGpu: hasGpuUsage || hasGpuTemperature
-  readonly property int gpuTileCount: (hasGpuUsage ? 1 : 0) + (hasGpuTemperature ? 1 : 0) + (hasGpuVram ? 1 : 0)
+  readonly property int gpuTileCount: (hasGpuUsage ? 1 : 0) + (hasGpuTemperature ? 1 : 0)
 
   function gpuTemperatureText() {
     return metrics.gpuTemperature >= 0 ? Math.round(metrics.gpuTemperature) + "°C" : "—"
@@ -416,7 +416,8 @@ Panel {
     if (barMode === "GPU") return "GPU " + padPercent(metrics.gpuPercent)
     if (barMode === "Temp") return thermalBarName() + " " + padThermalBarValue()
     if (barMode === "Both")
-      return "C " + padPercent(metrics.cpuPercent) + " M " + padPercent(metrics.memoryPercent)
+      return "CPU " + percent(metrics.cpuPercent) + " | MEM " + percent(metrics.memoryPercent)
+        + (hasGpuVram ? " | VRAM " + percent(gpuVramPercent()) : "")
     // Adaptive: CPU vs RAM pressure only — never heat/temp (explicit Temp mode).
     return metrics.cpuPercent >= metrics.memoryPercent
       ? "CPU " + padPercent(metrics.cpuPercent)
@@ -495,7 +496,10 @@ Panel {
   }
 
   visible: true
-  implicitWidth: iconOnly ? iconButton.implicitWidth : button.implicitWidth
+  // Divider separating the widget from whatever sits to its left (workspaces).
+  readonly property bool showSeparator: !button.vertical
+  readonly property int separatorSpace: showSeparator ? Style.space(12) : 0
+  implicitWidth: separatorSpace + (iconOnly ? iconButton.implicitWidth : button.implicitWidth)
   implicitHeight: iconOnly ? iconButton.implicitHeight : button.implicitHeight
 
   onOpenedChanged: {
@@ -529,9 +533,21 @@ Panel {
     else toggle()
   }
 
+  Rectangle {
+    id: separator
+    visible: root.showSeparator
+    anchors.left: parent.left
+    anchors.leftMargin: Style.space(4)
+    anchors.verticalCenter: parent.verticalCenter
+    width: 1
+    height: parent.height * 0.5
+    color: root.chartGrid
+  }
+
   WidgetButton {
     id: button
     anchors.fill: parent
+    anchors.leftMargin: root.separatorSpace
     visible: !root.iconOnly
     bar: root.bar
     text: root.barLabel()
@@ -546,6 +562,7 @@ Panel {
   BarIconButton {
     id: iconButton
     anchors.fill: parent
+    anchors.leftMargin: root.separatorSpace
     visible: root.iconOnly
     bar: root.bar
     text: root.heroGlyph
@@ -683,7 +700,7 @@ Panel {
               width: root.gpuTileWidth(parent.width, parent.spacing)
               title: "GPU"
               value: root.percent(metrics.gpuPercent)
-              detail: root.hasGpuVram ? root.formatBytes(metrics.gpuVramTotal) + " VRAM" : "—"
+              detail: root.hasGpuVram ? "VRAM " + root.gpuVramDetail() : "—"
               meter: metrics.gpuPercent
               meterColor: root.levelColor(metrics.gpuPercent, root.warningThreshold, root.criticalThreshold)
               alarming: metrics.gpuPercent >= root.criticalThreshold
@@ -700,16 +717,6 @@ Panel {
               alarming: metrics.gpuTemperature >= 95
             }
 
-            StatTile {
-              visible: root.hasGpuVram
-              width: root.gpuTileWidth(parent.width, parent.spacing)
-              title: "VRAM"
-              value: root.percent(root.gpuVramPercent())
-              detail: root.gpuVramDetail()
-              meter: root.gpuVramPercent()
-              meterColor: root.levelColor(root.gpuVramPercent(), root.warningThreshold, root.criticalThreshold)
-              alarming: root.gpuVramPercent() >= root.criticalThreshold
-            }
           }
 
           // ---------- Platform sensors (Apple Silicon) ----------
