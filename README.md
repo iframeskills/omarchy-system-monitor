@@ -14,7 +14,7 @@ background daemon or telemetry service.
 
 ## Highlights
 
-- Adaptive bar widget that can show CPU, memory, GPU, or both
+- Bar widget that shows CPU, memory and GPU by default, or one of them at a time
 - Expandable dashboard for CPU, RAM, temperature, load, and uptime
 - Platform sensor section on Apple Silicon (Asahi): every labelled SMC
   temperature and power rail, since no SoC die sensor exists there
@@ -60,7 +60,8 @@ omarchy restart shell
 | `R` while open | Refresh metrics now |
 | `B` while open | Open `btop` |
 
-Adaptive mode displays whichever of CPU or memory is currently under more
+Both mode, the default, shows CPU, memory, and the GPU utilization and VRAM
+when the card publishes them. Adaptive mode displays whichever of CPU or memory is currently under more
 pressure. Warning and critical colors follow the active Omarchy theme.
 
 ## Metrics
@@ -174,7 +175,7 @@ Open **Setup → Plugins → System Monitor** to change these values:
 
 | Setting | Default | Range or behavior |
 | --- | ---: | --- |
-| Bar display | Adaptive | `Adaptive`, `CPU`, `Memory`, `GPU`, `Both`, or `Icon` (glyph only; still tints at warning/critical) |
+| Bar display | Both | `Adaptive`, `CPU`, `Memory`, `GPU`, `Both`, or `Icon` (glyph only; still tints at warning/critical) |
 | Closed refresh | 5 s | 2–60 seconds |
 | Open refresh | 2 s | 1–10 seconds |
 | Warning threshold | 80% | 50–95% |

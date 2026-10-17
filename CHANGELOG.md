@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.5.3 - 2026-10-17
+
+- `Both` is the default bar display mode
+- `Both` adds GPU utilization (`CPU | MEM | GPU | VRAM`) when the card
+  publishes a utilization counter; unreadable GPUs stay hidden
+
 ## 1.5.2 - 2026-09-17
 
 - Apple Silicon SENSORS default list is shorter (battery hotspot, charge

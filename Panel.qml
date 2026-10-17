@@ -28,7 +28,7 @@ Panel {
   readonly property color warningColor: Qt.tint(accent, Qt.rgba(urgent.r, urgent.g, urgent.b, 0.6))
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
-  readonly property string barMode: String(setting("barMode", "Adaptive"))
+  readonly property string barMode: String(setting("barMode", "Both"))
   // Icon mode keeps the bar quiet: the plugin glyph alone, still tinted at
   // warning/critical pressure, tooltip and dashboard unchanged.
   readonly property bool iconOnly: barMode === "Icon"
@@ -415,8 +415,11 @@ Panel {
     if (barMode === "Memory") return "RAM " + padPercent(metrics.memoryPercent)
     if (barMode === "GPU") return "GPU " + padPercent(metrics.gpuPercent)
     if (barMode === "Temp") return thermalBarName() + " " + padThermalBarValue()
+    // Both: CPU and memory, plus whatever the GPU can report. A card that
+    // cannot be read is left out rather than shown as idle.
     if (barMode === "Both")
       return "CPU " + percent(metrics.cpuPercent) + " | MEM " + percent(metrics.memoryPercent)
+        + (hasGpuUsage ? " | GPU " + percent(metrics.gpuPercent) : "")
         + (hasGpuVram ? " | VRAM " + percent(gpuVramPercent()) : "")
     // Adaptive: CPU vs RAM pressure only — never heat/temp (explicit Temp mode).
     return metrics.cpuPercent >= metrics.memoryPercent
