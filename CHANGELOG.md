@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 - `Both` is the default bar display mode
 - `Both` adds GPU utilization (`CPU | MEM | GPU | VRAM`) when the card
   publishes a utilization counter; unreadable GPUs stay hidden
+- In `Both` mode each reading has its own color: the theme's `yellow` at
+  the warning threshold, its `red` at the critical threshold
+- Warning and critical thresholds default to 70% and 90% (were 80% and 95%)
 
 ## 1.5.2 - 2026-09-17
 

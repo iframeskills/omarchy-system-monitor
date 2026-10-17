@@ -62,7 +62,9 @@ omarchy restart shell
 
 Both mode, the default, shows CPU, memory, and the GPU utilization and VRAM
 when the card publishes them. Adaptive mode displays whichever of CPU or memory is currently under more
-pressure. Warning and critical colors follow the active Omarchy theme.
+pressure. Warning and critical colors follow the active Omarchy theme. In Both
+mode each reading has its own color: the theme's yellow from the warning
+threshold, and its red from the critical threshold.
 
 ## Metrics
 
@@ -178,8 +180,8 @@ Open **Setup → Plugins → System Monitor** to change these values:
 | Bar display | Both | `Adaptive`, `CPU`, `Memory`, `GPU`, `Both`, or `Icon` (glyph only; still tints at warning/critical) |
 | Closed refresh | 5 s | 2–60 seconds |
 | Open refresh | 2 s | 1–10 seconds |
-| Warning threshold | 80% | 50–95% |
-| Critical threshold | 95% | 60–100% |
+| Warning threshold | 70% | 50–95% |
+| Critical threshold | 90% | 60–100% |
 | Network interface | Automatic | Leave empty to follow the default route |
 
 ## Update
