@@ -288,3 +288,20 @@ test("repository ships marketplace and README preview images", () => {
     assert.ok(contents.length > 10_000, `${file} should contain a real preview`)
   }
 })
+
+test("theme color parser reads hex colors from colors.toml", () => {
+  const raw = [
+    'mode = "dark"',
+    'accent = "#f38d70"',
+    'yellow = "#f9cc6c"',
+    '  red   =   "#FD6883"  # comment',
+    'broken = "not-a-color"'
+  ].join("\n")
+  const colors = Model.parseThemeColors(raw)
+  assert.equal(colors.yellow, "#f9cc6c")
+  assert.equal(colors.red, "#FD6883")
+  assert.equal(colors.accent, "#f38d70")
+  assert.equal(colors.mode, undefined)
+  assert.equal(colors.broken, undefined)
+  assert.deepEqual(Model.parseThemeColors(""), {})
+})

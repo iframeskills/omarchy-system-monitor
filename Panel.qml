@@ -26,14 +26,20 @@ Panel {
   // urgent and muted — so blend one rather than hardcoding an orange that
   // would clash on half the themes.
   readonly property color warningColor: Qt.tint(accent, Qt.rgba(urgent.r, urgent.g, urgent.b, 0.6))
+  // Both mode colors each bar reading with the theme's own yellow and red,
+  // read from its colors.toml. Themes without them fall back to the blended
+  // warning color and the bar's urgent color.
+  property var themePalette: ({})
+  readonly property color stressWarningColor: themePalette.yellow || warningColor
+  readonly property color stressCriticalColor: themePalette.red || urgent
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   readonly property string barMode: String(setting("barMode", "Both"))
   // Icon mode keeps the bar quiet: the plugin glyph alone, still tinted at
   // warning/critical pressure, tooltip and dashboard unchanged.
   readonly property bool iconOnly: barMode === "Icon"
-  readonly property real warningThreshold: Math.min(Number(setting("warningPercent", 80)), criticalThreshold - 1)
-  readonly property real criticalThreshold: Math.max(Number(setting("criticalPercent", 95)), 61)
+  readonly property real warningThreshold: Math.min(Number(setting("warningPercent", 70)), criticalThreshold - 1)
+  readonly property real criticalThreshold: Math.max(Number(setting("criticalPercent", 90)), 61)
   readonly property real pressure: Math.max(metrics.cpuPercent, metrics.memoryPercent)
   // On machines with no package sensor (Apple Silicon), the thermal load
   // shows in heatpipe watts: the tint tracks dissipated heat, the hottest
@@ -391,6 +397,31 @@ Panel {
     return root.accent
   }
 
+  function stressColor(value) {
+    if (!isFinite(value) || value < 0) return root.foreground
+    if (value >= criticalThreshold) return root.stressCriticalColor
+    if (value >= warningThreshold) return root.stressWarningColor
+    return root.foreground
+  }
+
+  // Both mode as separate pieces, so each reading can carry its own color.
+  // Separators have value -1 and keep the normal bar color. A GPU that
+  // cannot be read is left out rather than shown as idle.
+  function barSegments() {
+    var parts = [
+      { text: "CPU " + percent(metrics.cpuPercent), value: metrics.cpuPercent },
+      { text: "MEM " + percent(metrics.memoryPercent), value: metrics.memoryPercent }
+    ]
+    if (hasGpuUsage) parts.push({ text: "GPU " + percent(metrics.gpuPercent), value: metrics.gpuPercent })
+    if (hasGpuVram) parts.push({ text: "VRAM " + percent(gpuVramPercent()), value: gpuVramPercent() })
+    var segments = []
+    for (var i = 0; i < parts.length; i++) {
+      if (i > 0) segments.push({ text: " | ", value: -1 })
+      segments.push(parts[i])
+    }
+    return segments
+  }
+
   function modeLabel() {
     return barMode === "Memory" ? "RAM" : barMode
   }
@@ -415,12 +446,8 @@ Panel {
     if (barMode === "Memory") return "RAM " + padPercent(metrics.memoryPercent)
     if (barMode === "GPU") return "GPU " + padPercent(metrics.gpuPercent)
     if (barMode === "Temp") return thermalBarName() + " " + padThermalBarValue()
-    // Both: CPU and memory, plus whatever the GPU can report. A card that
-    // cannot be read is left out rather than shown as idle.
     if (barMode === "Both")
-      return "CPU " + percent(metrics.cpuPercent) + " | MEM " + percent(metrics.memoryPercent)
-        + (hasGpuUsage ? " | GPU " + percent(metrics.gpuPercent) : "")
-        + (hasGpuVram ? " | VRAM " + percent(gpuVramPercent()) : "")
+      return barSegments().map(function(segment) { return segment.text }).join("")
     // Adaptive: CPU vs RAM pressure only — never heat/temp (explicit Temp mode).
     return metrics.cpuPercent >= metrics.memoryPercent
       ? "CPU " + padPercent(metrics.cpuPercent)
@@ -553,13 +580,48 @@ Panel {
     anchors.leftMargin: root.separatorSpace
     visible: !root.iconOnly
     bar: root.bar
+    // In Both mode the label below draws the text in colored pieces. This
+    // label stays, transparent, so the widget keeps its size and clicks.
+    readonly property bool segmented: root.barMode === "Both" && !vertical
     text: root.barLabel()
     fontSize: Style.font.caption
     horizontalMargin: 6
-    active: root.warning || root.critical
+    foreground: segmented ? "transparent" : root.foreground
+    active: !segmented && (root.warning || root.critical)
     activeColor: root.critical ? root.urgent : root.warningColor
     tooltipText: root.tooltipText()
     onPressed: function(buttonCode) { root.barPressed(buttonCode) }
+  }
+
+  Row {
+    anchors.centerIn: button
+    visible: button.visible && button.segmented
+
+    Repeater {
+      model: button.segmented ? root.barSegments() : []
+
+      Text {
+        required property var modelData
+        text: modelData.text
+        textFormat: Text.PlainText
+        color: root.stressColor(modelData.value)
+        font.family: button.fontFamily
+        font.pixelSize: button.fontSize
+        renderType: Text.NativeRendering
+
+        Behavior on color {
+          enabled: !root.bar || root.bar.foregroundAnimationEnabled
+          ColorAnimation { duration: 160 }
+        }
+      }
+    }
+  }
+
+  FileView {
+    path: Color.currentThemePath + "/colors.toml"
+    watchChanges: true
+    onFileChanged: reload()
+    onLoaded: root.themePalette = Model.parseThemeColors(text())
   }
 
   BarIconButton {

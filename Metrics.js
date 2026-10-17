@@ -301,6 +301,18 @@ function maximumPercent(cores) {
   return peak
 }
 
+// Read `name = "#rrggbb"` lines from an Omarchy theme's colors.toml into a
+// { name: "#rrggbb" } map. Anything that is not a hex color is skipped.
+function parseThemeColors(raw) {
+  var colors = {}
+  var lines = String(raw || "").split("\n")
+  for (var i = 0; i < lines.length; i++) {
+    var match = lines[i].match(/^\s*([A-Za-z0-9_]+)\s*=\s*"(#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?)"/)
+    if (match) colors[match[1]] = match[2]
+  }
+  return colors
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     parseCpu: parseCpu,
@@ -317,6 +329,7 @@ if (typeof module !== "undefined" && module.exports) {
     parseFilesystems: parseFilesystems,
     peakValue: peakValue,
     maximumPercent: maximumPercent,
-    escapeMarkup: escapeMarkup
+    escapeMarkup: escapeMarkup,
+    parseThemeColors: parseThemeColors
   }
 }
