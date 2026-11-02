@@ -15,5 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run the tests
-        run: make test
+      - name: Validate manifest JSON
+        run: jq empty manifest.json
+      - name: Run model tests
+        run: node --test tests/model.test.js
+      - name: Run sensor discovery tests
+        run: bash tests/discovery.test.sh

@@ -1,6 +1,5 @@
 .PHONY: test
 
-# The same checks as CI.
 test:
 	jq empty manifest.json
 	node --test tests/model.test.js
