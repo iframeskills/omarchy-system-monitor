@@ -1,6 +1,6 @@
 .PHONY: test
 
-# The same checks as CI: the manifest, the model tests and the sensor discovery fixtures.
+# The same checks as CI.
 test:
 	jq empty manifest.json
 	node --test tests/model.test.js
