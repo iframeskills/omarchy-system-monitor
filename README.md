@@ -212,12 +212,13 @@ state is the widget configuration managed by Omarchy in
 
 ## Development
 
-Validate the manifest and run the model tests from a checkout:
+Validate the manifest and run the tests from a checkout. `make test` runs the
+same checks as CI: the manifest JSON, the model tests and the sensor discovery
+fixtures.
 
 ```sh
 omarchy plugin validate .
-node --test tests/model.test.js
-bash tests/discovery.test.sh
+make test
 ```
 
 Changes inside an installed plugin directory normally hot-reload. Restart the
