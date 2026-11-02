@@ -203,7 +203,8 @@ packages or files outside Omarchy's plugin configuration.
 
 There are no third-party packages or services to install. The plugin uses
 `bash` and `df`, which are part of a standard Omarchy installation. `btop` is
-optional and is only launched when you request it.
+optional and is only launched when you request it. The tests in
+[Development](#development) also need `make`, `jq` and Node 18 or later.
 
 All monitoring stays on-device. The plugin does not use the network, write a
 metrics database, collect credentials, or send telemetry. Its only persistent
@@ -214,7 +215,7 @@ state is the widget configuration managed by Omarchy in
 
 Validate the manifest and run the tests from a checkout. `make test` runs the
 same checks as CI: the manifest JSON, the model tests and the sensor discovery
-fixtures.
+fixtures. It needs `make`, `jq` and Node 18 or later.
 
 ```sh
 omarchy plugin validate .
