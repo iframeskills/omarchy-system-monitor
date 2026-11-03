@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Exercises GPU discovery against fixture sysfs trees, so the vendor matrix is
-# verified rather than assumed on machines that only have one kind of card.
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,7 +8,7 @@ trap 'rm -rf "$work"' EXIT
 
 failures=0
 
-card() { # <tree> <card> [busy] [vram_total] [temp]
+card() {
   local dir="$work/$1/$2/device"
   mkdir -p "$dir"
   [[ -n "${3:-}" ]] && printf '%s\n' "$3" >"$dir/gpu_busy_percent"
@@ -25,7 +23,7 @@ card() { # <tree> <card> [busy] [vram_total] [temp]
   return 0
 }
 
-check() { # <name> <tree> <key> <expected-substring-or-EMPTY>
+check() {
   local out actual
   out="$(OMARCHY_SYSMON_DRM_ROOT="$work/$2" bash "$script" | grep "^$3	" || true)"
   actual="${out#*	}"
@@ -38,21 +36,16 @@ check() { # <name> <tree> <key> <expected-substring-or-EMPTY>
     echo "  FAIL $1: $3 expected '*$4*', got '$actual'"; failures=$((failures+1)); fi
 }
 
-# CPU package sensors and Apple Silicon platform sensors live under hwmon, so
-# those fixtures override the hwmon root the same way the DRM fixtures do.
-hwmon_tree() { # <tree> <hwmon-dir> <driver-name>
+hwmon_tree() {
   mkdir -p "$work/$1/$2"
   printf '%s\n' "$3" >"$work/$1/$2/name"
 }
 
-probe_hw() { # <tree>
+probe_hw() {
   OMARCHY_SYSMON_HWMON_ROOT="$work/$1" OMARCHY_SYSMON_DRM_ROOT="$work/no-cards" bash "$script"
 }
 
-# Exact-line and key-absent checks compare in pure bash rather than piping
-# into grep -q: with pipefail, grep -q's early exit SIGPIPEs the probe and a
-# successful match would report as a failure.
-expect_line() { # <name> <tree> <exact-line>
+expect_line() {
   local out line found=0
   out="$(probe_hw "$2")"
   while IFS= read -r line; do
@@ -62,7 +55,7 @@ expect_line() { # <name> <tree> <exact-line>
     echo "  FAIL $1: expected line '$3'"; failures=$((failures+1)); fi
 }
 
-expect_key_absent() { # <name> <tree> <key>
+expect_key_absent() {
   local out line found=0
   out="$(probe_hw "$2")"
   while IFS= read -r line; do

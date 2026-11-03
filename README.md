@@ -125,6 +125,8 @@ device identifiers. Two temperature-only cards in one machine — an Intel iGPU
 next to an Arc card, for instance — cannot currently be told apart, and the
 first is used.
 
+[docs/internals.md](docs/internals.md) explains the design choices in the code.
+
 ## Fan control (Apple Silicon, optional)
 
 On Asahi machines the panel grows a FANS section when the `asahi-fanctl`
