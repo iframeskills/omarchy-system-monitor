@@ -28,8 +28,9 @@ Panel {
 
   readonly property string barMode: String(setting("barMode", "Both"))
   readonly property bool iconOnly: barMode === "Icon"
-  readonly property real warningThreshold: Math.min(Number(setting("warningPercent", 70)), criticalThreshold - 1)
-  readonly property real criticalThreshold: Math.max(Number(setting("criticalPercent", 90)), 61)
+  readonly property var alarmThresholds: Model.alarmThresholds(setting("warningPercent", 70), setting("criticalPercent", 90))
+  readonly property real warningThreshold: alarmThresholds.warning
+  readonly property real criticalThreshold: alarmThresholds.critical
   readonly property real pressure: Math.max(metrics.cpuPercent, metrics.memoryPercent)
   readonly property bool warning: pressure >= warningThreshold || metrics.cpuTemperature >= 85 || metrics.gpuTemperature >= 85 || metrics.hottestPlatformTemp >= 85 || (metrics.cpuTemperature < 0 && metrics.heatpipeWatts >= heatWarnW) || metrics.fansManual
   readonly property bool critical: pressure >= criticalThreshold || metrics.cpuTemperature >= 95 || metrics.gpuTemperature >= 95 || metrics.hottestPlatformTemp >= 95 || (metrics.cpuTemperature < 0 && metrics.heatpipeWatts >= heatCriticalW)
