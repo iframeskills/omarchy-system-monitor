@@ -599,7 +599,6 @@ Panel {
           width: scrollArea.availableWidth
           spacing: Style.space(9)
 
-          // ---------- Hero: host · uptime and load ----------
           PanelHero {
             width: parent.width
             title: metrics.hostname !== "" ? metrics.hostname : "System Monitor"
@@ -630,7 +629,6 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // ---------- Headline metrics ----------
           Row {
             width: parent.width
             spacing: Style.space(8)
