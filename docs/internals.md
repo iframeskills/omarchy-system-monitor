@@ -71,3 +71,78 @@ Each GPU vendor exposes a different set of sensors, so the script probes each se
 | NVIDIA proprietary | nothing; every reading needs NVML, so a helper process per sample, which the plugin does not start |
 
 The script tries `temp1_input` first and `temp2_input` second. It skips a card with no utilisation and no temperature, because that card would show only dashes. A card with utilisation wins, then the card with the most video memory. This keeps the discrete card on hybrid systems without device IDs, and still reports a card that has only a temperature.
+
+## Sparkline
+
+`Sparkline.qml` draws a rolling time series in one of two shapes:
+
+- Single: `points` as a line over a fill, which grows up from the bottom
+  edge. `gridLevels` draws faint rules at fractions of full scale, so a
+  chart that is mostly idle shows its headroom and does not look empty.
+- Mirror: `points` above a center axis and `mirrorPoints` below it, on one
+  shared scale. The network send and receive pair uses it, so the direction
+  stays visible and the two values are not summed.
+
+`fixedMaximum` pins the vertical scale, so the caller can label the chart
+with the number that it draws against. A value of `0` or less scales to the
+window peak. `growsUpFromAxis` and `growsDownFromAxis` give the direction of
+each half.
+
+## Metrics.qml
+
+`Metrics.qml` holds the state and does all sampling.
+
+### Sampling cadence
+
+- VRAM use is read only while the panel is open. The value is only seen
+  then, and the closed cadence would cost two sysfs reads for nothing.
+  Total VRAM does not change for the life of the card, so discovery reads it
+  once.
+- Fan speeds follow the shared cadence also while the panel is closed,
+  because the history chart needs them and the sysfs reads are cheap.
+- The thermal history records one point per sample of the value that the
+  HEAT tile shows: package temperature, else heatpipe watts, else the
+  warmest platform temperature. A change of unit clears the history.
+- The two halves of a mirrored chart share one scale, so `networkPeak` is
+  the peak of the pair. The panel prints the number that it draws against.
+
+### Platform sensors and fans
+
+- Each discovered sensor and fan gets its own `FileView` in an
+  `Instantiator` with zero-size `Item` delegates, which keeps them out of
+  the visual tree. The shell's own agents plugin uses the same pattern.
+- The specs arrays (`platformSensorSpecs`, `fanSpecs`) are the
+  `Instantiator` models and change only at discovery. The value arrays are
+  separate and change on every sample. If a value update changed the model,
+  every `FileView` would be destroyed and made again.
+- Discovery assigns new specs only if `sensorSetChanged` or `fanSetChanged`
+  is true, for the same reason. A driver rebind moves the sysfs paths and
+  makes a new set.
+- `platformSensors` and `fans` zip the specs with their latest values for the
+  panel `Repeater`s.
+- `hottestPlatformTemp` sets the bar warning tint and the tooltip peak on a
+  machine with no package sensor. `hottestPlatformSensor` lets the
+  temperature tile name its source.
+- `heatpipeWatts` is the SMC heatpipe power reading (PHPC): an estimate of
+  the heat that the SoC dissipates through its heatpipes. With no die
+  temperature on Asahi, it is the nearest value to a CPU thermal load, and
+  the fan curves use the same input.
+
+### Fan control
+
+Fan control uses the `asahi-fanctl` helper and its `asahi-fand` daemon.
+
+- The daemon writes `/etc/asahi-fand.conf` on every mode change. A watched
+  `FileView` keeps the active preset and the manual-mode bar tint live with
+  no polling. If the file is missing, the helper is not installed and the
+  fan section stays hidden.
+- The `macsmc_hwmon` `fan_control` module parameter gates manual control.
+  A watched `FileView` updates the Enable button when control unlocks, also
+  when the daemon unlocks it. That unlock rebinds the driver and moves the
+  sysfs paths, so a change from locked to unlocked starts a new discovery.
+- `fanStatusProc` runs `sudo -n asahi-fanctl status` once per panel open,
+  after every action, and after a discovery that finds SMC sensors. It gives
+  the daemon state only. RPMs and targets come from sysfs.
+- `fanctlProc` runs the mode, curve and enable commands. On exit it reloads
+  the parameter view and the daemon state. After `enable` it also starts a
+  new discovery, because the driver rebind moves the hwmon paths.
