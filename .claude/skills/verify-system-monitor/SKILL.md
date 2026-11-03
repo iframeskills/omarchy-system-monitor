@@ -29,7 +29,7 @@ All three exit 0 from the repo root, so the checkout is the build you mean to pr
 
 1. `make test` from the repo root: the manifest JSON, `tests/model.test.js` and the
    discovery fixtures in `tests/discovery.test.sh`. This is what CI runs.
-2. `.claude/skills/verify-system-monitor/sample.sh [evidence-dir]` drives the same paths that the
+2. `.claude/skills/verify-system-monitor/sample.sh [evidence-dir] [repo]` drives the same paths that the
    widget uses, on the live machine:
    - `omarchy plugin validate .`
    - `bash discover-sensors.sh` against the real `/sys` (TSV lines such as `cpu_temp`, `disk`,
@@ -41,9 +41,10 @@ All three exit 0 from the repo root, so the checkout is the build you mean to pr
 3. For a behaviour-neutral change, run `sample.sh` on the base commit and on the change, and
    compare. `discovery.tsv` must be identical, `model.json` must have the same keys and the same
    discovery paths (live numbers differ), and the qmllint warning count must not rise.
-   Make a base checkout with `git worktree add /tmp/vsm-base <base-sha>`, run
-   `/tmp/vsm-base/.claude/skills/verify-system-monitor/sample.sh` only if the base has the
-   skill; otherwise copy `sample.sh` into it first.
+   Make a base checkout with `git worktree add /tmp/vsm-base <base-sha>`, then run the change's
+   own script against it: `.claude/skills/verify-system-monitor/sample.sh /tmp/vsm-base-ev /tmp/vsm-base`.
+   Without the `repo` argument the script uses the checkout that holds the script; a copy outside
+   any checkout exits 2 with an error.
 
 Feature recipes: [features/README.md](features/README.md).
 

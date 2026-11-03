@@ -19,45 +19,26 @@ Panel {
   readonly property color muted: Qt.darker(foreground, 1.4)
   readonly property color trackColor: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12)
   readonly property color chartGrid: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.18)
-  // Second data hue. Stays inside the accent family so charted values never
-  // read as body text, but dark enough to separate from the primary line.
   readonly property color secondary: Qt.darker(accent, 1.5)
-  // No warning role exists in the palette — themes ship foreground, accent,
-  // urgent and muted — so blend one rather than hardcoding an orange that
-  // would clash on half the themes.
   readonly property color warningColor: Qt.tint(accent, Qt.rgba(urgent.r, urgent.g, urgent.b, 0.6))
-  // Both mode colors each bar reading with the theme's own yellow and red,
-  // read from its colors.toml. Themes without them fall back to the blended
-  // warning color and the bar's urgent color.
   property var themePalette: ({})
   readonly property color stressWarningColor: themePalette.yellow || warningColor
   readonly property color stressCriticalColor: themePalette.red || urgent
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
   readonly property string barMode: String(setting("barMode", "Both"))
-  // Icon mode keeps the bar quiet: the plugin glyph alone, still tinted at
-  // warning/critical pressure, tooltip and dashboard unchanged.
   readonly property bool iconOnly: barMode === "Icon"
   readonly property real warningThreshold: Math.min(Number(setting("warningPercent", 70)), criticalThreshold - 1)
   readonly property real criticalThreshold: Math.max(Number(setting("criticalPercent", 90)), 61)
   readonly property real pressure: Math.max(metrics.cpuPercent, metrics.memoryPercent)
-  // On machines with no package sensor (Apple Silicon), the thermal load
-  // shows in heatpipe watts: the tint tracks dissipated heat, the hottest
-  // platform temperature, and a non-auto fan mode (the SMC's automatic
-  // curve is overridden then, so software is the safety net).
   readonly property bool warning: pressure >= warningThreshold || metrics.cpuTemperature >= 85 || metrics.gpuTemperature >= 85 || metrics.hottestPlatformTemp >= 85 || (metrics.cpuTemperature < 0 && metrics.heatpipeWatts >= heatWarnW) || metrics.fansManual
   readonly property bool critical: pressure >= criticalThreshold || metrics.cpuTemperature >= 95 || metrics.gpuTemperature >= 95 || metrics.hottestPlatformTemp >= 95 || (metrics.cpuTemperature < 0 && metrics.heatpipeWatts >= heatCriticalW)
 
   readonly property string heroGlyph: "󰻠"
 
-  // Package temperature only spans a useful band; drawing 57°C as 57% of a
-  // meter makes a cold chip look half-loaded. Anchor the scale at 30°C.
   readonly property real temperatureFloor: 30
   readonly property real temperatureCeiling: 100
 
-  // Keyboard/mouse cursor over the action row — the panel's only actionable
-  // controls. Visuals derive from `hasCursor`, never from containsMouse, so
-  // one highlight shows at a time no matter which input moved it.
   property bool cursorActive: false
   property int selectedIndex: 0
   readonly property int actionCount: 2
@@ -66,8 +47,6 @@ Panel {
     return isFinite(value) && value >= 0 ? Math.round(value) + "%" : "—"
   }
 
-  // Fixed-width percentage for the bar label. Without the pad the widget
-  // resizes as values cross 10 and 100, shoving every widget beside it.
   function padPercent(value) {
     if (!isFinite(value) || value < 0) return "  —"
     var text = Math.round(value) + "%"
@@ -75,7 +54,6 @@ Panel {
     return text
   }
 
-  // Fixed-width thermal bar value: watts on Asahi (heatpipe), °C elsewhere.
   function padThermalBarValue() {
     if (thermalTileIsWatts()) {
       var text = metrics.heatpipeWatts.toFixed(1) + "W"
@@ -106,8 +84,6 @@ Panel {
     return amount.toFixed(digits) + " " + units[index]
   }
 
-  // "3.6 / 7.3 GiB" — one unit for the pair, so used/total lines up and the
-  // string stays short enough for a third-of-a-panel card.
   function formatPair(used, total) {
     var totalBytes = Number(total)
     if (!isFinite(totalBytes) || totalBytes <= 0) return "—"
@@ -142,13 +118,6 @@ Panel {
     return one(metrics.loadOne) + " / " + one(metrics.loadFive) + " / " + one(metrics.loadFifteen)
   }
 
-  // ---- Thermal headline ----
-  // With a package sensor (x86/AMD) the tile is that temperature. On Apple
-  // Silicon there is no die temperature at all, and the warmest exposed
-  // sensor is a peripheral that can read mild while the SoC runs hot out of
-  // sight — so the headline there is heatpipe power: the watts the SoC is
-  // actually dissipating, the number that tracks the warmth you feel and
-  // the same input the fan curves follow.
   readonly property real heatWarnW: 15
   readonly property real heatCriticalW: 25
   readonly property real heatCeilingW: 30
@@ -169,16 +138,11 @@ Panel {
   }
 
   function thermalTileDetail() {
-    // Keep this short: the three-up tile row clips longer copy.
-    // Heatpipe watts are the real signal; no cool/warm/hot feel labels —
-    // those would pretend a chassis-dependent guess is calibrated.
     if (thermalTileIsWatts()) return "heatpipe"
     if (metrics.cpuTemperature >= 0) {
       if (metrics.cpuTemperature >= 85) return "Warm"
       return "Normal"
     }
-    // No heatpipe sensor either: the warmest exposed temperature, labelled
-    // as what it is — a peripheral, not the machine's peak.
     var source = temperatureSourceLabel()
     if (source !== "") return "warmest: " + source
     return metrics.hasPlatformSensors ? "No SoC sensor" : "Unavailable"
@@ -201,8 +165,6 @@ Panel {
     return (metrics.cpuTemperature >= 0 ? metrics.cpuTemperature : metrics.hottestPlatformTemp) >= 95
   }
 
-  // Tooltip headline: the package sensor when there is one, then heatpipe
-  // watts, then the warmest exposed temperature.
   function headlineTempText() {
     if (metrics.cpuTemperature >= 0) return Math.round(metrics.cpuTemperature) + "°C"
     if (metrics.heatpipeWatts >= 0) return "heat " + metrics.heatpipeWatts.toFixed(1) + " W"
@@ -218,18 +180,12 @@ Panel {
       .replace(/ Temp$/, "")
   }
 
-  // Package temperature only spans a useful band; drawing 57°C as 57% of a
-  // meter makes a cold chip look half-loaded. Anchor the scale at 30°C.
   function temperatureBandMeter(value) {
     if (!isFinite(value) || value < 0) return -1
     var span = temperatureCeiling - temperatureFloor
     return Math.max(0, Math.min(100, (value - temperatureFloor) * 100 / span))
   }
 
-  // Vendors expose different subsets: amdgpu publishes utilisation, memory and
-  // temperature; i915/xe and nouveau publish temperature alone. Each tile is
-  // gated on its own sensor so a temperature-only card still gets a section
-  // instead of a row of em dashes.
   readonly property bool hasGpuUsage: metrics.gpuPercent >= 0
   readonly property bool hasGpuTemperature: metrics.gpuTemperature >= 0
   readonly property bool hasGpuVram: metrics.gpuVramTotal > 0 && metrics.gpuVramUsed >= 0
@@ -246,14 +202,10 @@ Panel {
     return "Normal"
   }
 
-  // Same anchored scale as the CPU package sensor: a cold die drawn as a
-  // fraction of 100°C reads as half-loaded.
   function gpuTemperatureMeter() {
     return temperatureBandMeter(metrics.gpuTemperature)
   }
 
-  // Platform sensor rows: hwmon temperatures in °C, power rails in W. The
-  // value is muted rather than dash-only when a sensor reports nothing.
   function sensorValueText(sensor) {
     if (!sensor || !isFinite(sensor.value) || sensor.value < 0) return "—"
     if (sensor.kind === "power") return sensor.value.toFixed(1) + " W"
@@ -265,9 +217,6 @@ Panel {
     return ""
   }
 
-  // Default SENSORS list stays short: heatpipe (drives HEAT + fans), the
-  // battery/charge thermal pair, and total system power. NAND / Wi-Fi /
-  // rail watts hide behind "show all" so the panel stays scannable.
   property bool showAllPlatformSensors: false
 
   function isPrimaryPlatformSensor(sensor) {
@@ -287,9 +236,8 @@ Panel {
     for (var i = 0; i < all.length; i++) {
       if (root.isPrimaryPlatformSensor(all[i])) rows.push(all[i])
     }
-    // If nothing matched labels (unexpected SMC naming), fall back to all
-    // rather than an empty section.
-    return rows.length > 0 ? rows : all
+    var noLabelMatchedSmcNaming = rows.length === 0
+    return noLabelMatchedSmcNaming ? all : rows
   }
 
   function hiddenPlatformSensorCount() {
@@ -300,13 +248,10 @@ Panel {
     return Math.max(0, all.length - visible.length)
   }
 
-  // ---- Fans ----
 
   function fanRpmText(fan) {
     if (!fan || !isFinite(fan.rpm) || fan.rpm < 0) return "—"
     var text = Math.round(fan.rpm) + " RPM"
-    // The target only means something while the fan is in manual mode;
-    // under SMC control it is Apple's own request, not ours.
     if (metrics.fansManual && isFinite(fan.target) && fan.target > 0) {
       text += " · tgt " + Math.round(fan.target)
     }
@@ -332,8 +277,6 @@ Panel {
     ])
   }
 
-  // Row skips invisible children, so the divisor is the number of tiles that
-  // this card can actually fill.
   function gpuTileWidth(rowWidth, spacing) {
     var count = Math.max(1, gpuTileCount)
     return (rowWidth - spacing * (count - 1)) / count
@@ -349,7 +292,6 @@ Panel {
     return formatPair(metrics.gpuVramUsed, metrics.gpuVramTotal)
   }
 
-  // nvme0n1 → nvme0, mmcblk0 → mmc0; sda and friends are already short.
   function shortDiskName(name) {
     var text = String(name || "")
     var nvme = text.match(/^nvme(\d+)n\d+$/)
@@ -359,8 +301,6 @@ Panel {
     return text
   }
 
-  // The row reports combined throughput, so past the first device the names
-  // are noise — collapse them into a count.
   function diskLabelText() {
     var devices = metrics.diskDevices
     if (!devices || devices.length === 0) return "DISK"
@@ -373,12 +313,6 @@ Panel {
     return segments[segments.length - 1] || String(mount)
   }
 
-  // Auto-discovered mount paths. These render into CapacityRow's label, which
-  // pins Text.PlainText, so the raw path is passed through the same way the
-  // section heading takes its title; escapeMarkup stays reserved for the
-  // shared bar tooltip, whose formatting this plugin does not control.
-  // Normally the last path segment (/mnt/data -> "data"); when two disks share
-  // a basename the colliding ones show the full path.
   function mountLabel(mount) {
     var target = String(mount)
     var base = mountBasename(target)
@@ -404,9 +338,6 @@ Panel {
     return root.foreground
   }
 
-  // Both mode as separate pieces, so each reading can carry its own color.
-  // Separators have value -1 and keep the normal bar color. A GPU that
-  // cannot be read is left out rather than shown as idle.
   function barSegments() {
     var parts = [
       { text: "CPU " + percent(metrics.cpuPercent), value: metrics.cpuPercent },
@@ -426,10 +357,7 @@ Panel {
     return barMode === "Memory" ? "RAM" : barMode
   }
 
-  // Every horizontal form is a fixed character count, so the widget keeps its
-  // width as values cross 10 and 100 instead of shoving its neighbours.
   function barLabel() {
-    // A vertical bar has room for the number and nothing else.
     if (button.vertical) {
       if (barMode === "Temp") {
         if (thermalTileIsWatts()) return metrics.heatpipeWatts.toFixed(0)
@@ -448,21 +376,16 @@ Panel {
     if (barMode === "Temp") return thermalBarName() + " " + padThermalBarValue()
     if (barMode === "Both")
       return barSegments().map(function(segment) { return segment.text }).join("")
-    // Adaptive: CPU vs RAM pressure only — never heat/temp (explicit Temp mode).
     return metrics.cpuPercent >= metrics.memoryPercent
       ? "CPU " + padPercent(metrics.cpuPercent)
       : "RAM " + padPercent(metrics.memoryPercent)
   }
 
   function tooltipText() {
-    // WidgetButton's shared tooltip only accepts a string and renders it with
-    // Text.AutoText, so neutralize markup before handing it configuration.
     var interfaceName = Model.escapeMarkup(metrics.activeInterface)
     var lines = [
       "CPU " + percent(metrics.cpuPercent) + " · RAM " + percent(metrics.memoryPercent) + " · " + headlineTempText()
     ]
-    // Skipped entirely on machines without a utilisation-reporting GPU, so
-    // the tooltip never grows a row of em dashes.
     if (hasGpu) {
       var gpu = []
       if (hasGpuUsage) gpu.push("GPU " + percent(metrics.gpuPercent))
@@ -486,7 +409,6 @@ Panel {
   }
 
   function cycleBarMode() {
-    // Temp is opt-in via cycle / settings — never selected by Adaptive.
     var modes = hasGpuUsage
       ? ["Adaptive", "CPU", "Memory", "GPU", "Temp", "Both", "Icon"]
       : ["Adaptive", "CPU", "Memory", "Temp", "Both", "Icon"]
@@ -526,7 +448,6 @@ Panel {
   }
 
   visible: true
-  // Divider separating the widget from whatever sits to its left (workspaces).
   readonly property bool showSeparator: !button.vertical
   readonly property int separatorSpace: showSeparator ? Style.space(12) : 0
   implicitWidth: separatorSpace + (iconOnly ? iconButton.implicitWidth : button.implicitWidth)
@@ -580,8 +501,6 @@ Panel {
     anchors.leftMargin: root.separatorSpace
     visible: !root.iconOnly
     bar: root.bar
-    // In Both mode the label below draws the text in colored pieces. This
-    // label stays, transparent, so the widget keeps its size and clicks.
     readonly property bool segmented: root.barMode === "Both" && !vertical
     text: root.barLabel()
     fontSize: Style.font.caption
@@ -645,11 +564,6 @@ Panel {
     open: root.opened
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(380))
-    // Capped height, not a fixed one: fittedContentHeight still shrinks to fit
-    // the screen and to the content itself, this just raises the ceiling so
-    // the added CapacityRow entries (one per auto-discovered disk), platform
-    // sensor rows, thermal and RPM charts, and the fans section aren't
-    // clipped.
     contentHeight: panel.fittedContentHeight(panelColumn.implicitHeight, Style.space(600 + metrics.extraFilesystems.length * 40 + (metrics.hasPlatformSensors ? metrics.platformSensors.length * 40 + (metrics.fanMode === "custom" ? 400 : 300) : 0)))
 
     PanelKeyCatcher {
@@ -685,7 +599,6 @@ Panel {
           width: scrollArea.availableWidth
           spacing: Style.space(9)
 
-          // ---------- Hero: host · uptime and load ----------
           PanelHero {
             width: parent.width
             title: metrics.hostname !== "" ? metrics.hostname : "System Monitor"
@@ -716,7 +629,6 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // ---------- Headline metrics ----------
           Row {
             width: parent.width
             spacing: Style.space(8)

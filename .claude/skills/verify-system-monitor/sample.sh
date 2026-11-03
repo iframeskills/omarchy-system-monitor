@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -uo pipefail
-repo="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
+repo="${2:-$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel 2>/dev/null)}"
+if [ -z "$repo" ] || [ ! -f "$repo/Metrics.js" ]; then
+  echo "error: no checkout found; pass it: sample.sh <evidence-dir> <repo>" >&2
+  exit 2
+fi
+repo="$(cd "$repo" && pwd)"
 out="${1:-${TMPDIR:-/tmp}/verify-system-monitor-$(date +%s)}"
 mkdir -p "$out"
 cd "$repo"
