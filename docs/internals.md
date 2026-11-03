@@ -53,3 +53,21 @@ because a mount path from `df` can contain markup.
 `peakValue` gives the peak of a rolling history window. The panel pins the
 sparkline scale to that peak, so the chart and its printed scale label show
 the same number.
+
+## Sensor discovery
+
+`discover-sensors.sh` reads `OMARCHY_SYSMON_HWMON_ROOT` and `OMARCHY_SYSMON_DRM_ROOT` when they are set. `tests/discovery.test.sh` uses them to run the discovery against fixture sysfs trees for hardware that the machine does not have. Its exact-line checks compare in bash and do not pipe into `grep -q`: with `pipefail`, the early exit of `grep -q` kills the probe with SIGPIPE, and a match reports as a failure.
+
+Apple Silicon (Asahi Linux) has no CPU package sensor, because the SoC die temperatures stay in the PMU. The `macsmc_hwmon` driver gives labelled platform temperatures, power rails and fans instead, and the script lists all of them. The script trims whitespace at the two ends of a sysfs label, because labels can carry padding. An input without a label gets a numbered name, such as `Temperature 3` or `Power 2`.
+
+Each GPU vendor exposes a different set of sensors, so the script probes each sensor on its own:
+
+| Driver | Readable in sysfs |
+|---|---|
+| amdgpu | `gpu_busy_percent`, hwmon `temp1_input`, `mem_info_vram_*` |
+| i915 | hwmon `temp1_input` only; utilisation needs the PMU or per-client fdinfo |
+| xe | hwmon `temp2_input` only; the xe hwmon ABI starts the package temperature at 2 |
+| nouveau | hwmon `temp1_input` only |
+| NVIDIA proprietary | nothing; every reading needs NVML, so a helper process per sample, which the plugin does not start |
+
+The script tries `temp1_input` first and `temp2_input` second. It skips a card with no utilisation and no temperature, because that card would show only dashes. A card with utilisation wins, then the card with the most video memory. This keeps the discrete card on hybrid systems without device IDs, and still reports a card that has only a temperature.
