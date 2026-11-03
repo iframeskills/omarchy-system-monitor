@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-set -u
-case "${1:-}" in
-  ""|--mutants) ;;
-  -h|--help) echo "usage: check [--mutants]  (exit 0 holds, 1 broken, 2 cannot run)"; exit 0 ;;
-  *) echo "error: unknown argument: $1"; echo "help[1]: check --help"; exit 2 ;;
-esac
-command -v node >/dev/null || { echo "error: node is not installed"; exit 2; }
-exec node "$(dirname "$0")/model.js" "$@"
