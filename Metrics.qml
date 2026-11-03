@@ -51,15 +51,9 @@ Item {
   property double lastSampleMs: 0
   property double lastFilesystemRefreshMs: 0
 
-  // Apple Silicon (Asahi) platform sensors. The specs array is the Instantiator
-  // model and only ever changes at discovery; the parallel values array is
-  // reassigned on every sample. Keeping them separate stops a value update
-  // from tearing down and rebuilding every sensor's FileView.
   property var platformSensorSpecs: []
   property var platformSensorValues: []
 
-  // Display rows: specs zipped with their latest values. Reassigned whenever
-  // either source changes, so Panel Repeaters re-render cheaply.
   readonly property var platformSensors: {
     var rows = []
     for (var i = 0; i < platformSensorSpecs.length; i++) {
@@ -74,8 +68,6 @@ Item {
 
   readonly property bool hasPlatformSensors: platformSensorSpecs.length > 0
 
-  // Hottest platform temperature; drives the bar's warning tint and the
-  // tooltip's peak reading on machines with no package sensor.
   readonly property real hottestPlatformTemp: {
     var hottest = -1
     for (var i = 0; i < platformSensors.length; i++) {
@@ -85,9 +77,6 @@ Item {
     return hottest
   }
 
-  // The hottest platform temperature and the sensor that owns it, so the
-  // temperature tile can name its source instead of pretending a package
-  // sensor exists.
   readonly property var hottestPlatformSensor: {
     var best = null
     for (var i = 0; i < platformSensors.length; i++) {
@@ -97,10 +86,6 @@ Item {
     return best
   }
 
-  // Heatpipe power (the SMC's PHPC reading): an estimate of the heat the
-  // SoC is dissipating through its heatpipes. With no die temperature
-  // exposed, this is the closest thing to a CPU thermal load Asahi offers —
-  // and the same input the fan curves follow. -1 when unavailable.
   readonly property real heatpipeWatts: {
     var value = -1
     for (var i = 0; i < platformSensors.length; i++) {
@@ -111,12 +96,6 @@ Item {
     return value
   }
 
-  // ---- Fan control (Apple Silicon, via the asahi-fanctl helper) ----
-  // The daemon's mode lives in a root-readable config file, so the active
-  // preset and the bar's manual-mode tint stay live with zero polling. Fan
-  // RPMs come straight from sysfs FileViews; the control-lock state from
-  // the watched module parameter; and one `sudo -n asahi-fanctl status`
-  // per panel open covers the daemon's own state.
   property string fanMode: ""
   property real fanCurveLoW: 4
   property real fanCurveHiW: 18
@@ -128,8 +107,6 @@ Item {
   property bool fanControlSeen: false
   property bool fanControlUnlocked: false
 
-  // Fan specs from discovery (the Instantiator model) with parallel live
-  // arrays for current speed and manual target.
   property var fanSpecs: []
   property var fanValues: []
   property var fanTargets: []
@@ -137,7 +114,6 @@ Item {
   readonly property bool fanCtlAvailable: fanMode !== ""
   readonly property bool fansManual: fanMode !== "" && fanMode !== "auto"
 
-  // Display rows: specs zipped with their live readings.
   readonly property var fans: {
     var rows = []
     for (var i = 0; i < fanSpecs.length; i++) {
@@ -158,9 +134,6 @@ Item {
     fanctlProc.running = true
   }
 
-  // ---- Thermal headline history ----
-  // One point per sample tick of whichever value the HEAT tile carries:
-  // package temperature, heatpipe watts, then warmest exposed temperature.
   property var thermalHistory: []
   property string lastThermalUnit: ""
   property double lastThermalRecordMs: 0
@@ -188,8 +161,6 @@ Item {
   property var networkDownHistory: []
   property var networkUpHistory: []
 
-  // Both halves of a mirrored chart share one scale, so the peak is taken
-  // across the pair. The panel prints the same number it draws against.
   readonly property real networkPeak: Math.max(Model.peakValue(networkDownHistory), Model.peakValue(networkUpHistory))
   readonly property real coreMaximum: Model.maximumPercent(perCore)
 
@@ -273,15 +244,11 @@ Item {
     if (cpuTempPath !== "") temperatureFile.reload()
     if (gpuBusyPath !== "") gpuBusyFile.reload()
     if (gpuTempPath !== "") gpuTemperatureFile.reload()
-    // VRAM only moves when the panel is open and a human is looking; polling
-    // it on the closed cadence buys nothing and costs two sysfs reads.
     if (panelOpen && gpuVramUsedPath !== "") gpuVramUsedFile.reload()
     for (var i = 0; i < sensorFileViews.count; i++) {
       var sensorFile = sensorFileViews.objectAt(i)
       if (sensorFile) sensorFile.sample()
     }
-    // Fan speeds are cheap sysfs reads and the history chart wants them
-    // even while nobody is looking, so they follow the shared cadence.
     for (var j = 0; j < fanFileViews.count; j++) {
       var fanFile = fanFileViews.objectAt(j)
       if (fanFile) fanFile.sample()
@@ -381,8 +348,6 @@ Item {
   onPanelOpenChanged: {
     sampleTimer.restart()
     sample()
-    // One helper poll per open covers the daemon's own state (active, mode
-    // sanity); everything else lives in watched files and sysfs views.
     if (panelOpen && fanCtlAvailable && !fanStatusProc.running) fanStatusProc.running = true
   }
 
@@ -394,9 +359,6 @@ Item {
     onTriggered: root.sample()
   }
 
-  // One FileView per discovered platform sensor, created on demand. Item
-  // delegates with zero size keep them out of the visual tree; the Instantiator
-  // pattern mirrors the shell's own agents plugin.
   Instantiator {
     id: sensorFileViews
     model: root.platformSensorSpecs
@@ -418,8 +380,6 @@ Item {
     }
   }
 
-  // One pair of FileViews per discovered fan: current speed (polled on the
-  // shared cadence) and the manual target.
   Instantiator {
     id: fanFileViews
     model: root.fanSpecs
@@ -571,9 +531,6 @@ Item {
     onFileChanged: reload()
   }
 
-  // The daemon rewrites its config on every mode change, so watching this
-  // file keeps the active preset (and the bar's manual-mode tint) live with
-  // zero polling. Absent file = helper not installed = no fan section.
   FileView {
     id: fanModeFile
     path: "/etc/asahi-fand.conf"
@@ -584,10 +541,6 @@ Item {
     onFileChanged: reload()
   }
 
-  // The kernel parameter gates manual control. Watching it keeps the Enable
-  // button honest the moment control unlocks — including when the daemon
-  // does it on its own, which rebinds the driver and moves sysfs paths, so
-  // a false→true transition triggers a rediscovery.
   FileView {
     id: fanControlParamFile
     path: "/sys/module/macsmc_hwmon/parameters/fan_control"
@@ -605,8 +558,6 @@ Item {
     onFileChanged: reload()
   }
 
-  // Authoritative one-shot daemon state, polled once per panel open and
-  // after every action; RPMs and targets come from sysfs, not from here.
   Process {
     id: fanStatusProc
     command: ["sudo", "-n", "/usr/local/bin/asahi-fanctl", "status"]
@@ -624,9 +575,6 @@ Item {
     }
   }
 
-  // One-shot runner for mode/curve/enable commands; the exit handler
-  // refreshes the param view and daemon state, and `enable` additionally
-  // rediscovers sensors (the driver rebind moves hwmon paths).
   Process {
     id: fanctlProc
     property bool rediscovers: false
@@ -661,14 +609,10 @@ Item {
         if (root.cpuTempPath !== "") temperatureFile.reload()
         if (root.gpuBusyPath !== "") gpuBusyFile.reload()
         if (root.gpuTempPath !== "") gpuTemperatureFile.reload()
-        // Total VRAM is fixed for the life of the card, so read it once here
-        // rather than on every sample.
         if (root.gpuVramTotalPath !== "") gpuVramTotalFile.reload()
         if (root.gpuVramUsedPath !== "") gpuVramUsedFile.reload()
         diskFile.reload()
 
-        // Same sensors, same objects: skip the reassignment when the set has
-        // not changed, so live FileViews are not torn down for nothing.
         var specs = []
         for (var i = 0; i < discovered.platformSensors.length; i++) {
           specs.push({
@@ -678,7 +622,8 @@ Item {
             label: discovered.platformSensors[i].label
           })
         }
-        if (JSON.stringify(specs) !== JSON.stringify(root.platformSensorSpecs)) {
+        var sensorSetChanged = JSON.stringify(specs) !== JSON.stringify(root.platformSensorSpecs)
+        if (sensorSetChanged) {
           root.platformSensorSpecs = specs
           var values = []
           for (var j = 0; j < specs.length; j++) values.push(-1)
@@ -689,8 +634,6 @@ Item {
           if (sensorFile) sensorFile.sample()
         }
 
-        // Fans: same pattern — rebuild only when the set changed (a driver
-        // rebind moves paths).
         var nextFanSpecs = []
         for (var f = 0; f < discovered.fans.length; f++) {
           nextFanSpecs.push({
@@ -703,7 +646,8 @@ Item {
             max: discovered.fans[f].max
           })
         }
-        if (JSON.stringify(nextFanSpecs) !== JSON.stringify(root.fanSpecs)) {
+        var fanSetChanged = JSON.stringify(nextFanSpecs) !== JSON.stringify(root.fanSpecs)
+        if (fanSetChanged) {
           root.fanSpecs = nextFanSpecs
           var nextFanValues = []
           var nextFanTargets = []
@@ -718,8 +662,6 @@ Item {
           var fanFile = fanFileViews.objectAt(h)
           if (fanFile) fanFile.sample()
         }
-        // An SMC hwmon machine may have the fan control helper installed:
-        // prime the daemon state (mode comes from the watched config file).
         if ((specs.length > 0 || nextFanSpecs.length > 0) && !fanStatusProc.running) {
           fanStatusProc.running = true
         }
@@ -729,9 +671,6 @@ Item {
 
   Process {
     id: filesystemProc
-    // Local, on-disk filesystems only, with a type column; the parser drops
-    // pseudo mounts and collapses subvolumes. `-l` keeps a stale network
-    // mount from hanging df.
     command: ["df", "-P", "-k", "-l", "-T"]
     stdout: StdioCollector {
       waitForEnd: true

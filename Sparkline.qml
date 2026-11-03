@@ -1,19 +1,5 @@
 import QtQuick
 
-// Rolling time-series plot with two shapes:
-//
-//   single — `points` drawn as a line over an optional fill, growing up from
-//            the bottom edge. Optional `gridLevels` draw faint rules at
-//            fractions of full scale so a mostly-idle chart still reads as
-//            "lots of headroom" rather than "empty box".
-//
-//   mirror — `points` above a center axis and `mirrorPoints` below it, on one
-//            shared scale. Used for the send/receive pairs so direction
-//            survives the trip to the screen instead of being summed away.
-//
-// `fixedMaximum` pins the vertical scale so the caller can label the chart
-// with the same number it was drawn against; leave it <= 0 to auto-scale to
-// the window peak.
 Canvas {
   id: root
 
@@ -31,6 +17,8 @@ Canvas {
   property int windowMs: 120000
 
   readonly property bool mirrored: mirrorPoints !== null && mirrorPoints !== undefined
+  readonly property int growsUpFromAxis: -1
+  readonly property int growsDownFromAxis: 1
 
   antialiasing: true
   onPointsChanged: requestPaint()
@@ -76,9 +64,7 @@ Canvas {
     }
   }
 
-  // `direction` is -1 for series that grow upward from the axis, +1 for the
-  // mirrored half that grows downward.
-  function drawSeries(ctx, list, oldest, maximum, axis, span, direction, stroke, fill, dash) {
+  function drawSeries(ctx, list, oldest, maximum, axis, span, growthDirection, stroke, fill, dash) {
     if (!list || list.length < 2) return
 
     function pointX(point) {
@@ -87,7 +73,7 @@ Canvas {
     function pointY(point) {
       var value = Number(point.value)
       if (!isFinite(value) || value < 0) value = 0
-      return axis + direction * Math.min(1, value / maximum) * span
+      return axis + growthDirection * Math.min(1, value / maximum) * span
     }
 
     ctx.beginPath()
@@ -131,7 +117,7 @@ Canvas {
 
     drawGrid(ctx, axis, span)
     if (mirrored)
-      drawSeries(ctx, mirrorPoints, oldest, maximum, axis, span, 1, mirrorLineColor, mirrorFillColor, false)
-    drawSeries(ctx, points, oldest, maximum, axis, span, -1, lineColor, fillColor, dashed)
+      drawSeries(ctx, mirrorPoints, oldest, maximum, axis, span, growsDownFromAxis, mirrorLineColor, mirrorFillColor, false)
+    drawSeries(ctx, points, oldest, maximum, axis, span, growsUpFromAxis, lineColor, fillColor, dashed)
   }
 }
