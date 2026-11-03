@@ -303,3 +303,11 @@ test("theme color parser reads hex colors from colors.toml", () => {
   assert.equal(colors.broken, undefined)
   assert.deepEqual(Model.parseThemeColors(""), {})
 })
+
+test("alarm thresholds fall back to the defaults when a setting is not a finite number", () => {
+  assert.deepEqual(Model.alarmThresholds("abc", "abc"), { warning: 70, critical: 90 })
+  assert.deepEqual(Model.alarmThresholds(70, undefined), { warning: 70, critical: 90 })
+  assert.deepEqual(Model.alarmThresholds(null, Infinity), { warning: 70, critical: 90 })
+  assert.deepEqual(Model.alarmThresholds(80, 50), { warning: 60, critical: 61 })
+  assert.deepEqual(Model.alarmThresholds(95, 90), { warning: 89, critical: 90 })
+})

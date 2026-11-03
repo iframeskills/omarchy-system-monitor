@@ -7,6 +7,21 @@ function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, value))
 }
 
+var DEFAULT_WARNING_PERCENT = 70
+var DEFAULT_CRITICAL_PERCENT = 90
+var MINIMUM_CRITICAL_PERCENT = 61
+
+function percentSetting(value, fallback) {
+  if (value === null || value === undefined || String(value).trim() === "") return fallback
+  return finiteNumber(value, fallback)
+}
+
+function alarmThresholds(warningSetting, criticalSetting) {
+  var critical = Math.max(percentSetting(criticalSetting, DEFAULT_CRITICAL_PERCENT), MINIMUM_CRITICAL_PERCENT)
+  var warning = Math.min(percentSetting(warningSetting, DEFAULT_WARNING_PERCENT), critical - 1)
+  return { warning: warning, critical: critical }
+}
+
 function escapeMarkup(value) {
   return String(value === undefined || value === null ? "" : value)
     .replace(/&/g, "&amp;")
@@ -300,6 +315,7 @@ if (typeof module !== "undefined" && module.exports) {
     peakValue: peakValue,
     maximumPercent: maximumPercent,
     escapeMarkup: escapeMarkup,
-    parseThemeColors: parseThemeColors
+    parseThemeColors: parseThemeColors,
+    alarmThresholds: alarmThresholds
   }
 }
