@@ -146,3 +146,64 @@ Fan control uses the `asahi-fanctl` helper and its `asahi-fand` daemon.
 - `fanctlProc` runs the mode, curve and enable commands. On exit it reloads
   the parameter view and the daemon state. After `enable` it also starts a
   new discovery, because the driver rebind moves the hwmon paths.
+
+## Panel.qml: colors, thresholds and labels
+
+- `secondary` is a darker accent: charted values stay in the accent family
+  and do not look like body text, but separate from the primary line.
+- Omarchy themes have no warning color (they ship foreground, accent,
+  urgent and muted), so `warningColor` blends accent and urgent. A fixed
+  orange clashes with many themes.
+- In Both mode, `stressWarningColor` and `stressCriticalColor` use the
+  `yellow` and `red` of the theme `colors.toml`. If a theme has none, they
+  fall back to `warningColor` and `urgent`.
+- Icon mode shows only the plugin glyph. It still tints at warning and
+  critical pressure, and the tooltip and dashboard do not change.
+- On a machine without a package sensor (Apple Silicon), `warning` and
+  `critical` also follow heatpipe watts, the hottest platform temperature,
+  and a fan mode other than auto. In that mode the SMC curve is off, so the
+  software is the safety net.
+- Temperature meters start at `temperatureFloor` (30°C). A meter from 0
+  shows a cold 57°C chip as half loaded. GPU temperature uses the same band.
+- The keyboard and mouse cursor over the action row drives one highlight
+  through `hasCursor`, never `containsMouse`, so only one highlight shows.
+- Every horizontal bar label has a fixed character count (`padPercent`,
+  `padThermalBarValue`), so the widget keeps its width when a value crosses
+  10 or 100. A vertical bar shows the number only.
+- `formatPair` prints used and total with one unit (`3.6 / 7.3 GiB`), so
+  the pair lines up and fits a third of the panel.
+- Adaptive mode compares CPU and memory only. Temp mode is opt-in.
+- In Both mode, `barSegments` splits the label so each reading has its own
+  color. Separators have value `-1` and keep the bar color. The plain label
+  stays, transparent, so the widget keeps its size and click area.
+- A separator on the left divides the widget from the workspaces.
+
+## Panel.qml: thermal headline and sensors
+
+- With a package sensor, the HEAT tile shows that temperature. Apple
+  Silicon has no die temperature, and the warmest exposed sensor is a
+  peripheral that can read mild while the SoC is hot. There the tile shows
+  heatpipe watts, the same input that the fan curves use. Without heatpipe
+  power, the tile shows the warmest temperature labelled with its source.
+- The tile caption stays short, because the three-tile row clips long text.
+  It has no cool, warm or hot labels for watts, because those depend on the
+  chassis and are not calibrated.
+- The tooltip headline uses the same order: package sensor, heatpipe watts,
+  then the warmest temperature. The tooltip escapes markup (see
+  "Tooltip markup") and skips the GPU line when no GPU reading exists.
+- Each GPU tile depends on its own sensor, so a card with only a
+  temperature still gets a section. `gpuTileWidth` divides by the number of
+  visible tiles, because `Row` skips invisible children.
+- The default SENSORS list shows heatpipe, battery and charge temperatures
+  and total system power. "Show all" shows the rest. If no label matches
+  (`noLabelMatchedSmcNaming`), the list shows all sensors.
+- A fan target shows only in manual mode. Under SMC control the target is
+  the request of the SMC.
+- The disk row shows combined throughput, so after the first device the
+  label gives a count. `shortDiskName` turns `nvme0n1` into `nvme0` and
+  `mmcblk0` into `mmc0`.
+- A mount label is the last path segment (`/mnt/data` gives `data`). If two
+  mounts share that name, they show the full path.
+- The panel height has a cap that grows with the extra disks, sensors,
+  charts and fan section. `fittedContentHeight` still shrinks to the screen
+  and the content.
