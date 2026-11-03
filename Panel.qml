@@ -664,9 +664,6 @@ Panel {
             }
           }
 
-          // ---------- GPU ----------
-          // Hidden outright when no card publishes utilisation, so machines
-          // without one keep the original three-tile layout.
           Row {
             width: parent.width
             spacing: Style.space(8)
@@ -696,10 +693,6 @@ Panel {
 
           }
 
-          // ---------- Platform sensors (Apple Silicon) ----------
-          // Asahi machines have no package sensor, but the SMC publishes
-          // labelled peripheral temperatures and power rails. Default list
-          // is the useful few; "show all" reveals the rest.
           Column {
             width: parent.width
             spacing: Style.space(6)
@@ -710,9 +703,6 @@ Panel {
               value: root.sensorSummaryText()
             }
 
-            // Thermal headline over time — the same value the HEAT tile
-            // carries (heatpipe watts here, package temperature elsewhere),
-            // peak-scaled like the network chart.
             Item {
               width: parent.width
               height: Style.space(54)
@@ -781,11 +771,6 @@ Panel {
             }
           }
 
-          // ---------- Fans (Apple Silicon) ----------
-          // Macs Fan Control-style: live RPMs plus the preset selector.
-          // Auto hands the fans back to the SMC's own curve; the others
-          // run in the asahi-fand daemon following heatpipe power.
-          // Hidden without the SMC hwmon device.
           Column {
             width: parent.width
             spacing: Style.space(6)
@@ -820,8 +805,6 @@ Panel {
               wrapMode: Text.WordWrap
             }
 
-            // Helper missing: sensors keep working, control just isn't
-            // possible. Point at the README rather than a dead button.
             Text {
               visible: !metrics.fanCtlAvailable
               width: parent.width
@@ -833,7 +816,6 @@ Panel {
               wrapMode: Text.WordWrap
             }
 
-            // Control locked (module parameter off): one click unlocks it.
             Button {
               visible: metrics.fanCtlAvailable && !metrics.fanControlUnlocked
               width: parent.width
@@ -845,9 +827,6 @@ Panel {
               onClicked: metrics.enableFanControl()
             }
 
-            // Presets, deliberately far apart so they feel different:
-            // Auto (SMC), Quiet (minimum idle, capped), Boost (audible
-            // floor, full by 14 W), Full, Custom. One row.
             ButtonGroup {
               width: parent.width
               visible: metrics.fanCtlAvailable
@@ -866,8 +845,6 @@ Panel {
               onChanged: function(selected) { metrics.runFanctl(["mode", selected]) }
             }
 
-            // Custom curve: RPM scales from rpm min to max as heatpipe power
-            // crosses the watt window; the floor is an always-at-least RPM.
             Column {
               id: curveEditor
               width: parent.width
@@ -956,7 +933,6 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // ---------- CPU and memory history ----------
           Column {
             width: parent.width
             spacing: Style.space(6)
@@ -1000,8 +976,6 @@ Panel {
                 fixedMaximum: 100
               }
 
-              // The scale is pinned at 100%, so say so — otherwise an idle
-              // machine just looks like an empty box.
               Text {
                 anchors.left: parent.left
                 anchors.top: parent.top
@@ -1024,7 +998,6 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // ---------- Per-thread load ----------
           Column {
             width: parent.width
             spacing: Style.space(6)
@@ -1044,8 +1017,6 @@ Panel {
               readonly property real cellWidth: metrics.perCore.length > 0
                 ? (width - spacing * (metrics.perCore.length - 1)) / metrics.perCore.length
                 : 0
-              // Numbers only survive down to about four characters; past that
-              // the tint carries the reading on its own.
               readonly property bool showValues: cellWidth >= Style.space(30)
 
               Repeater {
@@ -1062,9 +1033,6 @@ Panel {
                   radius: Style.cornerRadius
                   color: root.trackColor
 
-                  // Heat, not a bar: a 5%-loaded core drawn as a bar is a 1px
-                  // sliver that reads as a rendering artifact, while a tint
-                  // stays legible across the whole range.
                   Rectangle {
                     anchors.fill: parent
                     radius: parent.radius
@@ -1087,7 +1055,6 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // ---------- Throughput ----------
           Column {
             width: parent.width
             spacing: Style.space(8)
@@ -1102,9 +1069,6 @@ Panel {
               peak: metrics.networkPeak
             }
 
-            // Disk gets a single readout line. Its history is the least
-            // watched thing in the panel, and dropping the plot buys the
-            // network chart the full width.
             Item {
               width: parent.width
               implicitHeight: Math.max(diskName.implicitHeight, diskRates.implicitHeight)
@@ -1144,7 +1108,6 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // ---------- Capacity ----------
           Column {
             width: parent.width
             spacing: Style.space(6)
@@ -1178,7 +1141,6 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // ---------- Actions ----------
           Row {
             width: parent.width
             spacing: Style.space(8)
@@ -1206,8 +1168,6 @@ Panel {
     }
   }
 
-  // Section label on the left, its live summary on the right — the shell's
-  // house pattern, and it buys back the line a lone header would waste.
   component SectionHeading: Item {
     property string title: ""
     property string value: ""
@@ -1346,8 +1306,6 @@ Panel {
     }
   }
 
-  // Down and up never get summed together: up is drawn above the axis, down
-  // below it, on one shared scale that the corner label spells out.
   component ActivityColumn: Column {
     id: activity
     property string title: ""
@@ -1359,8 +1317,6 @@ Panel {
 
     spacing: Style.space(4)
 
-    // The scale label rides the header rather than the plot: laid over the
-    // chart it lands right where the spikes are.
     SectionHeading {
       title: activity.title
       value: activity.peak > 0 ? "±" + root.formatRate(activity.peak) : ""
@@ -1399,8 +1355,6 @@ Panel {
     }
   }
 
-  // The arrow carries its series' color so a value maps to a half of the
-  // mirrored chart without a second legend.
   component RateLabel: Row {
     id: rate
     property string glyph: ""
@@ -1424,9 +1378,6 @@ Panel {
     }
   }
 
-  // One platform sensor: label left, live value right, and for temperatures
-  // the same anchored meter band the package tiles use. Power rails skip the
-  // meter — there is no natural ceiling for watts.
   component SensorRow: Column {
     id: sensorRow
     property string label: ""
@@ -1444,8 +1395,6 @@ Panel {
       Text {
         id: sensorLabel
         text: sensorRow.label
-        // Labels arrive from sysfs label files, so pin the format instead of
-        // leaving Text.AutoText to sniff a crafted label as rich text.
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily
@@ -1474,9 +1423,6 @@ Panel {
     }
   }
 
-  // One fan: label and live RPM on the first line, the driver's RPM window
-  // beneath it. The RPM value warms up while the fan is under manual control
-  // so the row itself says which side owns it.
   component FanRow: Column {
     id: fanRow
     property string label: ""
@@ -1542,8 +1488,6 @@ Panel {
       Text {
         id: capacityLabel
         text: capacity.label
-        // Mount paths reach this label from df, so pin the format instead of
-        // leaving Text.AutoText to sniff a crafted path as rich text.
         textFormat: Text.PlainText
         color: root.foreground
         font.family: root.fontFamily

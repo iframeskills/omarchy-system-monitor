@@ -8,7 +8,7 @@ fi
 repo="$(cd "$repo" && pwd)"
 out="${1:-${TMPDIR:-/tmp}/verify-system-monitor-$(date +%s)}"
 mkdir -p "$out"
-cd "$repo"
+cd "$repo" || exit 1
 git rev-parse HEAD >"$out/revision.txt"
 omarchy plugin validate . >"$out/validate.txt" 2>&1; echo "validate exit $?" | tee -a "$out/summary.txt"
 bash discover-sensors.sh >"$out/discovery.tsv" 2>"$out/discovery.err"; echo "discovery exit $?" | tee -a "$out/summary.txt"

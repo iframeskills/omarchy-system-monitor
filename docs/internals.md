@@ -207,3 +207,40 @@ Fan control uses the `asahi-fanctl` helper and its `asahi-fand` daemon.
 - The panel height has a cap that grows with the extra disks, sensors,
   charts and fan section. `fittedContentHeight` still shrinks to the screen
   and the content.
+
+## Panel.qml: layout and components
+
+- The GPU row is hidden when no card has a reading, so those machines keep
+  the three-tile layout.
+- On Asahi, the SENSORS section lists the labelled SMC temperatures and
+  power rails, and charts the HEAT value over time with a peak scale, as the
+  network chart does.
+- The FANS section shows live RPMs and the preset selector, and is hidden
+  without the SMC hwmon device. Auto gives the fans back to the SMC curve.
+  The other presets run in the `asahi-fand` daemon on heatpipe power. If the
+  helper is missing, the section points to the README. If the module
+  parameter locks control, one button unlocks it. The presets are far apart
+  so that each one sounds different (see the README table). The custom
+  curve scales RPM between two bounds as heatpipe power crosses a watt
+  window, with a floor that is the minimum RPM.
+- The CPU and memory chart prints its fixed 100% scale, so an idle machine
+  does not look like an empty box.
+- Per-thread load uses a tint, not a bar: a bar for a core at 5% is a 1 px
+  line that looks like a rendering fault. The numbers show only when a cell
+  has room for about four characters.
+- Disk throughput gets one line. Its history is the least watched value,
+  and without a disk chart the network chart gets the full width.
+- `SectionHeading` puts the label on the left and its live summary on the
+  right, as the shell does, so a header does not use a line of its own.
+- `ActivityColumn` draws up above the axis and down below it on one shared
+  scale, and never sums them. The scale label is in the header, because on
+  the chart it covers the spikes.
+- `RateLabel` gives the arrow the color of its series, so no second legend
+  is needed.
+- `SensorRow` shows the anchored temperature meter for temperatures only.
+  Watts have no natural maximum.
+- `FanRow` shows the driver RPM window below the live RPM. The RPM value
+  changes color under manual control, so the row shows who controls the
+  fan.
+- Sensor labels from sysfs and mount paths from `df` render with
+  `Text.PlainText`, so a crafted label cannot become rich text.
