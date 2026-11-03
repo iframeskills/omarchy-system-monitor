@@ -100,13 +100,13 @@ test("discovery parser captures gpu sensor paths alongside cpu and disks", () =>
 })
 
 test("discovery parser captures macsmc fan records with bounds", () => {
+  const nonNumericBoundsDropWholeRecord = "fan\t/sys/class/hwmon/hwmon2/fan3_input\t3\tBroken\tNaN\t0"
+  const tabInLabelKeepsBoundsAsLastTwoFields = "fan\t/sys/class/hwmon/hwmon2/fan4_input\t4\tLeft\tRight\t1200\t6241"
   const raw = [
     "fan\t/sys/class/hwmon/hwmon2/fan1_input\t1\tFan 1\t1200\t5779",
     "fan\t/sys/class/hwmon/hwmon2/fan2_input\t2\tFan 2\t1200\t6241",
-    // Non-numeric bounds drop the record rather than half-parsing it.
-    "fan\t/sys/class/hwmon/hwmon2/fan3_input\t3\tBroken\tNaN\t0",
-    // A label containing a tab survives; bounds are the last two fields.
-    "fan\t/sys/class/hwmon/hwmon2/fan4_input\t4\tLeft\tRight\t1200\t6241"
+    nonNumericBoundsDropWholeRecord,
+    tabInLabelKeepsBoundsAsLastTwoFields
   ].join("\n")
   assert.deepEqual(Model.parseDiscovery(raw).fans, [
     { path: "/sys/class/hwmon/hwmon2/fan1_input", targetPath: "/sys/class/hwmon/hwmon2/fan1_target", index: 1, label: "Fan 1", min: 1200, max: 5779 },
@@ -116,16 +116,16 @@ test("discovery parser captures macsmc fan records with bounds", () => {
 })
 
 test("discovery parser captures macsmc platform sensors with kind and label", () => {
+  const unknownKindIsDropped = "platform_sensor\t/sys/class/hwmon/hwmon2/curr1_input\tcurr\tCharger Current"
+  const everythingPastKindIsLabel = "platform_sensor\t/sys/class/hwmon/hwmon2/power4_input\tpower\tHeatpipe\tPower"
+  const lineWithoutLabelIsSkipped = "platform_sensor\t/sys/class/hwmon/hwmon2/temp9_input\ttemp"
   const raw = [
     "platform_sensor\t/sys/class/hwmon/hwmon2/temp1_input\ttemp\tNAND Flash Temperature",
     "platform_sensor\t/sys/class/hwmon/hwmon2/power1_input\tpower\tTotal System Power",
     "platform_sensor\t/sys/class/hwmon/hwmon2/temp2_input\ttemp\tBattery Hotspot",
-    // Unknown kinds are dropped rather than guessed at.
-    "platform_sensor\t/sys/class/hwmon/hwmon2/curr1_input\tcurr\tCharger Current",
-    // A label containing a tab survives: everything past the kind is the label.
-    "platform_sensor\t/sys/class/hwmon/hwmon2/power4_input\tpower\tHeatpipe\tPower",
-    // Malformed lines are skipped whole.
-    "platform_sensor\t/sys/class/hwmon/hwmon2/temp9_input\ttemp"
+    unknownKindIsDropped,
+    everythingPastKindIsLabel,
+    lineWithoutLabelIsSkipped
   ].join("\n")
   const parsed = Model.parseDiscovery(raw)
   assert.equal(parsed.cpuTempPath, "")
@@ -140,21 +140,21 @@ test("discovery parser captures macsmc platform sensors with kind and label", ()
 test("platform sensor values follow the hwmon ABI scale and reject junk", () => {
   assert.equal(Model.parseSensorValue("38500", "temp"), 38.5)
   assert.equal(Model.parseSensorValue("29970000", "power"), 29.97)
-  // Zero is a real reading (a rail at rest), not a missing one.
-  assert.equal(Model.parseSensorValue("0", "power"), 0)
+  const railAtRestReadsZeroNotMissing = 0
+  assert.equal(Model.parseSensorValue("0", "power"), railAtRestReadsZeroNotMissing)
   assert.equal(Model.parseSensorValue("", "temp"), -1)
   assert.equal(Model.parseSensorValue("   ", "temp"), -1)
   assert.equal(Model.parseSensorValue(null, "temp"), -1)
   assert.equal(Model.parseSensorValue("abc", "temp"), -1)
-  // Negative readings are not published by these sensors; treat as missing.
-  assert.equal(Model.parseSensorValue("-3", "temp"), -1)
+  const negativeReadingIsMissing = -1
+  assert.equal(Model.parseSensorValue("-3", "temp"), negativeReadingIsMissing)
 })
 
 test("gpu percent parser clamps to the 0-100 band and rejects missing readings", () => {
   assert.equal(Model.parseGpuPercent("6"), 6)
   assert.equal(Model.parseGpuPercent("150"), 100)
-  // A blank sysfs read must not become 0%, which would claim an idle GPU.
-  assert.equal(Model.parseGpuPercent(""), -1)
+  const blankReadIsMissingNotIdle = -1
+  assert.equal(Model.parseGpuPercent(""), blankReadIsMissingNotIdle)
   assert.equal(Model.parseGpuPercent("   "), -1)
   assert.equal(Model.parseGpuPercent(null), -1)
   assert.equal(Model.parseGpuPercent("abc"), -1)
@@ -229,8 +229,6 @@ test("filesystem discovery tolerates empty df output", () => {
 
 test("auto-discovered mount labels cannot become rich text", () => {
   const qml = fs.readFileSync(path.join(root, "Panel.qml"), "utf8")
-  // df-derived mount paths reach CapacityRow's label, so that Text must pin
-  // its format rather than letting Text.AutoText sniff a crafted path.
   assert.match(qml, /id: capacityLabel[\s\S]{0,320}textFormat: Text\.PlainText/)
 })
 

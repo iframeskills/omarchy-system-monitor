@@ -7,9 +7,6 @@ function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, value))
 }
 
-// WidgetButton forwards tooltip strings to the shell's shared Text item,
-// which currently uses Qt's automatic rich-text detection. Escape markup at
-// that boundary so configuration-derived labels cannot become HTML there.
 function escapeMarkup(value) {
   return String(value === undefined || value === null ? "" : value)
     .replace(/&/g, "&amp;")
@@ -162,8 +159,6 @@ function parseDiscovery(raw) {
     else if (key === "gpu_vram_total") result.gpuVramTotalPath = value
     else if (key === "disk" && value !== "") result.devices.push(value)
     else if (key === "platform_sensor" && value !== "") {
-      // "path\tkind\tlabel": the label is everything past the second field,
-      // so a label containing a tab survives intact.
       var fields = value.split("\t")
       if (fields.length >= 3 && (fields[1] === "temp" || fields[1] === "power")) {
         result.platformSensors.push({
@@ -173,9 +168,6 @@ function parseDiscovery(raw) {
         })
       }
     } else if (key === "fan" && value !== "") {
-      // "path\tindex\tlabel\tmin\tmax": the input path, from which the
-      // target path is derived by suffix substitution. A label containing
-      // tabs survives, so the bounds are the last two fields.
       var parts = value.split("\t")
       var fanIndex = Number(parts[1])
       var fanMin = Number(parts[parts.length - 2])
@@ -196,9 +188,6 @@ function parseDiscovery(raw) {
   return result
 }
 
-// amdgpu publishes utilisation as a bare integer percentage. An unreadable or
-// negative value becomes -1 so the panel prints an em dash instead of "0%",
-// which would wrongly claim the GPU is idle.
 function parseGpuPercent(raw) {
   var text = String(raw === undefined || raw === null ? "" : raw).trim()
   if (text === "") return -1
@@ -206,7 +195,6 @@ function parseGpuPercent(raw) {
   return isFinite(value) && value >= 0 ? clamp(value, 0, 100) : -1
 }
 
-// VRAM counters are plain byte totals; -1 marks "not published by this card".
 function parseByteCount(raw) {
   var text = String(raw === undefined || raw === null ? "" : raw).trim()
   if (text === "") return -1
@@ -214,9 +202,6 @@ function parseByteCount(raw) {
   return isFinite(value) && value >= 0 ? value : -1
 }
 
-// Platform sensors follow the hwmon ABI: temperatures in milli-degrees C,
-// power in micro-watts. Scaled to °C and W respectively; -1 marks a missing
-// or unreadable value so a dead sensor prints an em dash, never a false 0.
 function parseSensorValue(raw, kind) {
   var text = String(raw === undefined || raw === null ? "" : raw).trim()
   if (text === "") return -1
@@ -225,24 +210,12 @@ function parseSensorValue(raw, kind) {
   return kind === "power" ? value / 1000000 : value / 1000
 }
 
-// On-disk filesystem types worth a capacity row. An allowlist keeps the ever-
-// growing set of pseudo filesystems (tmpfs, overlay, squashfs, cgroup, and so
-// on) out without having to name each one; `df -l` already drops network
-// mounts before this runs.
-var CAPACITY_FILESYSTEMS = {
+var ON_DISK_FILESYSTEM_ALLOWLIST = {
   ext2: true, ext3: true, ext4: true, btrfs: true, xfs: true, f2fs: true,
   zfs: true, jfs: true, reiserfs: true, nilfs2: true, bcachefs: true,
   vfat: true, exfat: true, ntfs: true, ntfs3: true, hfsplus: true, ufs: true
 }
 
-// Parses `df -P -k -l -T` (POSIX columns, 1K blocks, local only, type column):
-//   Filesystem  Type  1024-blocks  Used  Available  Capacity  Mounted on
-// Returns one entry per physical device, in df's order, as
-// { mount, total, used, percent } with bytes and percent -1 when size is 0.
-// The root filesystem is always included so its meter cannot break; every
-// other row must be a real on-disk type. Rows sharing a source device (btrfs
-// subvolumes, bind mounts) collapse to the shortest mount path, since they
-// report the same free space anyway.
 function parseFilesystems(raw) {
   var lines = String(raw || "").trim().split("\n")
   var byDevice = ({})
@@ -254,7 +227,8 @@ function parseFilesystems(raw) {
     var device = fields[0]
     var type = fields[1]
     var mount = fields.slice(6).join(" ")
-    if (mount !== "/" && !CAPACITY_FILESYSTEMS[type]) continue
+    var isRootMount = mount === "/"
+    if (!isRootMount && !ON_DISK_FILESYSTEM_ALLOWLIST[type]) continue
 
     var total = finiteNumber(fields[2], 0) * 1024
     var used = finiteNumber(fields[3], 0) * 1024
@@ -265,11 +239,11 @@ function parseFilesystems(raw) {
       percent: total > 0 ? clamp(used * 100 / total, 0, 100) : -1
     }
 
-    var seen = byDevice[device]
-    if (!seen) {
+    var sameDeviceEntry = byDevice[device]
+    if (!sameDeviceEntry) {
       byDevice[device] = entry
       order.push(device)
-    } else if (mount.length < seen.mount.length) {
+    } else if (mount.length < sameDeviceEntry.mount.length) {
       byDevice[device] = entry
     }
   }
@@ -279,8 +253,6 @@ function parseFilesystems(raw) {
   return result
 }
 
-// Rolling-window peak, used to pin a sparkline's vertical scale so the chart
-// and its printed scale label agree.
 function peakValue(history) {
   var peak = 0
   if (!history) return peak
@@ -301,8 +273,6 @@ function maximumPercent(cores) {
   return peak
 }
 
-// Read `name = "#rrggbb"` lines from an Omarchy theme's colors.toml into a
-// { name: "#rrggbb" } map. Anything that is not a hex color is skipped.
 function parseThemeColors(raw) {
   var colors = {}
   var lines = String(raw || "").split("\n")
