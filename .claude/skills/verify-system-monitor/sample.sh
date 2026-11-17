@@ -35,6 +35,6 @@ console.log(JSON.stringify({
 }, null, 2))
 JS
 echo "model exit $?" | tee -a "$out/summary.txt"
-/usr/lib/qt6/bin/qmllint Metrics.qml Panel.qml Sparkline.qml >"$out/qmllint.txt" 2>&1
+/usr/lib/qt6/bin/qmllint Metrics.qml Panel.qml Sparkline.qml MonitorPopup.qml FanRow.qml ActionButton.qml >"$out/qmllint.txt" 2>&1
 echo "qmllint warnings $(grep -c '^Warning:' "$out/qmllint.txt")" | tee -a "$out/summary.txt"
 echo "evidence $out"

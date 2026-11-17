@@ -37,7 +37,7 @@ All three exit 0 from the repo root, so the checkout is the build you mean to pr
    - `Metrics.js` parsers over the real `/proc/stat` (two samples 0.5 s apart), `/proc/meminfo`,
      `/proc/loadavg`, `/proc/uptime`, `/proc/net/route`, `/proc/net/dev`, the discovery output
      and the `df` output, written as `model.json`.
-   - `qmllint` over the three QML files, with the count of `Warning:` lines.
+   - `qmllint` over the six QML files, with the count of `Warning:` lines.
 3. For a behaviour-neutral change, run `sample.sh` on the base commit and on the change, and
    compare. `discovery.tsv` must be identical, `model.json` must have the same keys and the same
    discovery paths (live numbers differ), and the qmllint warning count must not rise.
