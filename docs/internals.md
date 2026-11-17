@@ -166,7 +166,8 @@ Fan control uses the `asahi-fanctl` helper and its `asahi-fand` daemon.
 - Temperature meters start at `temperatureFloor` (30°C). A meter from 0
   shows a cold 57°C chip as half loaded. GPU temperature uses the same band.
 - The keyboard and mouse cursor over the action row drives one highlight
-  through `hasCursor`, never `containsMouse`, so only one highlight shows.
+  through `hasCursor` in `ActionButton.qml`, never `containsMouse`, so only
+  one highlight shows.
 - Every horizontal bar label has a fixed character count (`padPercent`,
   `padThermalBarValue`), so the widget keeps its width when a value crosses
   10 or 100. A vertical bar shows the number only.
@@ -178,7 +179,7 @@ Fan control uses the `asahi-fanctl` helper and its `asahi-fand` daemon.
   stays, transparent, so the widget keeps its size and click area.
 - A separator on the left divides the widget from the workspaces.
 
-## Panel.qml: thermal headline and sensors
+## Panel.qml and MonitorPopup.qml: thermal headline and sensors
 
 - With a package sensor, the HEAT tile shows that temperature. Apple
   Silicon has no die temperature, and the warmest exposed sensor is a
@@ -208,7 +209,7 @@ Fan control uses the `asahi-fanctl` helper and its `asahi-fand` daemon.
   charts and fan section. `fittedContentHeight` still shrinks to the screen
   and the content.
 
-## Panel.qml: layout and components
+## MonitorPopup.qml: layout and components
 
 - The GPU row is hidden when no card has a reading, so those machines keep
   the three-tile layout.
@@ -239,8 +240,8 @@ Fan control uses the `asahi-fanctl` helper and its `asahi-fand` daemon.
   is needed.
 - `SensorRow` shows the anchored temperature meter for temperatures only.
   Watts have no natural maximum.
-- `FanRow` shows the driver RPM window below the live RPM. The RPM value
-  changes color under manual control, so the row shows who controls the
-  fan.
+- `FanRow` (`FanRow.qml`) shows the driver RPM window below the live RPM.
+  The RPM value changes color under manual control, so the row shows who
+  controls the fan.
 - Sensor labels from sysfs and mount paths from `df` render with
   `Text.PlainText`, so a crafted label cannot become rich text.

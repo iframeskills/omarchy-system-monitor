@@ -215,8 +215,10 @@ state is the widget configuration managed by Omarchy in
 ## Development
 
 Validate the manifest and run the tests from a checkout. `make test` runs the
-checks that the no-mistakes gate runs: the manifest JSON, the model tests and
-the sensor discovery fixtures. It needs `make`, `jq` and Node 18.1 or later.
+checks that the no-mistakes gate runs: the manifest JSON, the model tests, the
+comment check, the sensor discovery fixtures and a QML smoke test that loads
+the popup in an offscreen shell. It needs `make`, `jq`, Node 18.1 or later,
+`quickshell` and the Omarchy shell in `/usr/share/omarchy/shell`.
 
 ```sh
 omarchy plugin validate .
