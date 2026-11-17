@@ -267,17 +267,6 @@ Panel {
     return "manual · " + metrics.fanMode
   }
 
-  function applyFanCurve() {
-    metrics.runFanctl([
-      "curve",
-      String(loWField.field.value),
-      String(hiWField.field.value),
-      String(rpmMinField.field.value),
-      String(rpmMaxField.field.value),
-      String(floorField.field.value)
-    ])
-  }
-
   function gpuTileWidth(rowWidth, spacing) {
     var count = Math.max(1, gpuTileCount)
     return (rowWidth - spacing * (count - 1)) / count

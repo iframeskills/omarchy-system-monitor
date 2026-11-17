@@ -6,3 +6,4 @@ test:
 	node --test tests/model.test.js
 	bash tests/no-comments.test.sh
 	bash tests/discovery.test.sh
+	bash tests/qml-smoke.test.sh

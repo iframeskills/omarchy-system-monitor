@@ -16,6 +16,17 @@ KeyboardPanel {
     contentWidth: panel.fittedContentWidth(Style.space(380))
     contentHeight: panel.fittedContentHeight(panelColumn.implicitHeight, Style.space(600 + metrics.extraFilesystems.length * 40 + (metrics.hasPlatformSensors ? metrics.platformSensors.length * 40 + (metrics.fanMode === "custom" ? 400 : 300) : 0)))
 
+    function applyFanCurve() {
+      metrics.runFanctl([
+        "curve",
+        String(loWField.field.value),
+        String(hiWField.field.value),
+        String(rpmMinField.field.value),
+        String(rpmMaxField.field.value),
+        String(floorField.field.value)
+      ])
+    }
+
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
@@ -376,7 +387,7 @@ KeyboardPanel {
                   accent: root.accent
                   fontFamily: root.fontFamily
                   fontSize: Style.font.bodySmall
-                  onClicked: root.applyFanCurve()
+                  onClicked: panel.applyFanCurve()
                 }
               }
             }
