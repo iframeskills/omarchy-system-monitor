@@ -59,7 +59,8 @@ test("configuration-derived labels cannot become rich text", () => {
 
   const qml = fs.readFileSync(path.join(root, "Panel.qml"), "utf8")
   assert.match(qml, /Model\.escapeMarkup\(metrics\.activeInterface\)/)
-  assert.match(qml, /id: headingText[\s\S]{0,160}textFormat: Text\.PlainText/)
+  const popup = fs.readFileSync(path.join(root, "MonitorPopup.qml"), "utf8")
+  assert.match(popup, /id: headingText[\s\S]{0,160}textFormat: Text\.PlainText/)
   assert.doesNotMatch(qml, /" · " \+ metrics\.activeInterface/)
 })
 
@@ -228,7 +229,7 @@ test("filesystem discovery tolerates empty df output", () => {
 })
 
 test("auto-discovered mount labels cannot become rich text", () => {
-  const qml = fs.readFileSync(path.join(root, "Panel.qml"), "utf8")
+  const qml = fs.readFileSync(path.join(root, "MonitorPopup.qml"), "utf8")
   assert.match(qml, /id: capacityLabel[\s\S]{0,320}textFormat: Text\.PlainText/)
 })
 
@@ -251,7 +252,8 @@ test("panel exposes bar cycling, btop launch, and live hostname title", () => {
   const qml = fs.readFileSync(path.join(root, "Panel.qml"), "utf8")
   assert.match(qml, /function cycleBarMode\(\)/)
   assert.match(qml, /function launchBtop\(\)/)
-  assert.match(qml, /metrics\.hostname !== "" \? metrics\.hostname : "System Monitor"/)
+  const popup = fs.readFileSync(path.join(root, "MonitorPopup.qml"), "utf8")
+  assert.match(popup, /metrics\.hostname !== "" \? metrics\.hostname : "System Monitor"/)
   assert.doesNotMatch(qml, /\/home\//)
 })
 
@@ -264,7 +266,9 @@ test("repository does not ship machine-specific paths or secrets", () => {
     "discover-sensors.sh",
     "manifest.json",
     "README.md",
-    ".github/workflows/validate.yml"
+    "MonitorPopup.qml",
+    "FanRow.qml",
+    "ActionButton.qml"
   ]
   for (const file of tracked) {
     const text = fs.readFileSync(path.join(root, file), "utf8")
