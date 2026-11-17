@@ -1,0 +1,3 @@
+commands:
+  test: "make test"
+no_ci: true

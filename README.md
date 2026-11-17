@@ -1,7 +1,6 @@
 # System Monitor for Omarchy
 
 [![Omarchy 4.0+](https://img.shields.io/badge/Omarchy-4.0%2B-c6aa75?style=flat-square)](https://omarchy.org/manual/shell-plugins/)
-[![Validate](https://img.shields.io/github/actions/workflow/status/Harshith292002/omarchy-system-monitor/validate.yml?branch=main&style=flat-square&label=validate)](https://github.com/Harshith292002/omarchy-system-monitor/actions/workflows/validate.yml)
 [![MIT License](https://img.shields.io/badge/license-MIT-6aa6b2?style=flat-square)](LICENSE)
 
 A low-overhead dashboard for the Omarchy bar. System Monitor reads Linux
@@ -216,8 +215,8 @@ state is the widget configuration managed by Omarchy in
 ## Development
 
 Validate the manifest and run the tests from a checkout. `make test` runs the
-same checks as CI: the manifest JSON, the model tests and the sensor discovery
-fixtures. It needs `make`, `jq` and Node 18.1 or later.
+checks that the no-mistakes gate runs: the manifest JSON, the model tests and
+the sensor discovery fixtures. It needs `make`, `jq` and Node 18.1 or later.
 
 ```sh
 omarchy plugin validate .
