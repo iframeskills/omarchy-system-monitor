@@ -42,7 +42,7 @@ System Monitor requires Omarchy 4.0 or newer with shell plugin support.
 omarchy plugin add https://github.com/Harshith292002/omarchy-system-monitor.git --enable
 ```
 
-The shell normally picks up the plugin immediately. If the widget does not
+The shell usually detects the plugin immediately. If the widget does not
 appear, restart it once:
 
 ```sh
