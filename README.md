@@ -204,8 +204,8 @@ packages or files outside Omarchy's plugin configuration.
 
 There are no third-party packages or services to install. The plugin uses
 `bash` and `df`, which are part of a standard Omarchy installation. `btop` is
-optional and is only launched when you request it. The tests have their own
-needs, listed in [Development](#development).
+optional and is only launched when you request it. See [Development](#development)
+for test requirements.
 
 All monitoring stays on-device. The plugin does not use the network, write a
 metrics database, collect credentials, or send telemetry. Its only persistent
